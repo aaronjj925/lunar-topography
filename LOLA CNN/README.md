@@ -1,5 +1,4 @@
-# Machine Learning for Lunar Topography Applications
+# Training a Convolutional Neural Network (CNN) on 
 
 ## Purpose
-Primary goal is to develop a neural network model capable of producing a lunar gravity model using the NASA LRO's LOLA altimetry data 
-asdf
+The following code uses the LRO's Lunar Orbiter Laser Altimeter's (LOLA) numerical data to interpolate the lunar terrain of missing data points.
