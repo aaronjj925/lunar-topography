@@ -96,14 +96,18 @@ def get_kernels(start_date, end_date, path):
         url = "https://naif.jpl.nasa.gov/pub/naif/pds/data/lro-l-spice-6-v1.0/lrosp_1000/data/ck/" + filename
         filepath = os.path.join(f"{path}/ck", filename)
         
+        if (next_date-current_date) > timedelta(days=10):
+            current_date = next_date - timedelta(days=10)
+            next_date = next_date
         try:
-            print(f"Downloading {filename}...")
-            urllib.request.urlretrieve(url, filepath) # FIXED: Added download command
+            print(f"Downloading {filename}")
+            urllib.request.urlretrieve(url, filepath)
         except Exception as e:
             print(f"Failed to download {filename} (might not exist yet): {e}")
-
-        current_date = current_date + timedelta(days=10)
-        next_date = next_date + timedelta(days=10)
+            next_date = next_date + timedelta(days=1)
+        else:
+            current_date = current_date + timedelta(days=10)
+            next_date = next_date + timedelta(days=10)
 
 # datetime = YYYY MM DD
 start_date = datetime(2009, 6, 30)
