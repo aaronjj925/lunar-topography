@@ -4,6 +4,11 @@ import os
 import shutil
 import numpy as np
 import spiceypy as spice
+from datetime import datetime, timedelta
+import urllib.request
+import urllib.error
+import math
+
 
 '''
 ALL in METERS
@@ -19,6 +24,91 @@ According to Section 4.1.3 of Calibration Reports:
 
     
 '''
+
+
+def get_kernels(start_date, end_date, path):
+
+    #####################################
+    # Spacecraft Clock-Kernel
+    os.makedirs(f"{path}/sclk", exist_ok=True)
+    url = "https://naif.jpl.nasa.gov/pub/naif/pds/data/lro-l-spice-6-v1.0/lrosp_1000/data/sclk/lro_clkcor_2025351_v00.tsc"
+    filepath = os.path.join(f"{path}/sclk", "lro_clkcor_2025351_v00.tsc")
+    urllib.request.urlretrieve(url, filepath)
+
+    #####################################
+    # Frames-Kernel
+    os.makedirs(f"{path}/fk", exist_ok=True)
+    url = "https://naif.jpl.nasa.gov/pub/naif/pds/data/lro-l-spice-6-v1.0/lrosp_1000/data/fk/lro_frames_2014049_v01.tf"
+    filepath = os.path.join(f"{path}/fk", "lro_frames_2014049_v01.tf")
+    urllib.request.urlretrieve(url, filepath)
+
+    #####################################
+    # Leapsecond-Kernel
+    os.makedirs(f"{path}/lsk", exist_ok=True)
+    url = "https://naif.jpl.nasa.gov/pub/naif/pds/data/lro-l-spice-6-v1.0/lrosp_1000/data/lsk/naif0012.tls"
+    filepath = os.path.join(f"{path}/lsk", "naif0012.tls")
+    urllib.request.urlretrieve(url, filepath)
+
+    #####################################
+    # Planetary Constant-Kernel
+    os.makedirs(f"{path}/pck", exist_ok=True)
+    url = "https://naif.jpl.nasa.gov/pub/naif/pds/data/lro-l-spice-6-v1.0/lrosp_1000/data/pck/pck00010.tpc"
+    filepath = os.path.join(f"{path}/pck", "pck00010.tpc")
+    urllib.request.urlretrieve(url, filepath)
+
+    #####################################
+    # C-Kernel Search
+    os.makedirs(f"{path}/ck", exist_ok=True)
+    
+    # looks for suitable nearest start date
+    start_date_found = False
+    current_date = start_date
+    next_date = start_date + timedelta(days=10)
+    iterator = 0
+    while start_date_found == False:
+        iterator == iterator + 1
+        if iterator == 20:
+            print("Unable to find valid start date file")
+            return
+        # starts from the current (aka start) and sees if there's a file with that name
+        current_yyyydoy = current_date.strftime("%Y%j")
+        next_yyyydoy = next_date.strftime("%Y%j")
+        filename = f"lrosc_{current_yyyydoy}_{next_yyyydoy}_v01.bc"
+        url = "https://naif.jpl.nasa.gov/pub/naif/pds/data/lro-l-spice-6-v1.0/lrosp_1000/data/ck/" + filename
+        req = urllib.request.Request(url, method='HEAD')
+        # if found, print statement runs and the files begin downloading
+        try:
+            urllib.request.urlopen(req, timeout=5)
+            print(f"Viable Starting File found at {filename}")
+            break
+        # if unable to be found, the dates go back one day and checks again 
+        # (goes back a day to ensure start date is within time period)
+        except Exception as e:
+            print(f"Failed to find {filename}. Error: {e}. Still looking for viable starting file")
+        current_date = current_date - timedelta(days=1)
+        next_date = next_date - timedelta(days=1)
+
+    # goes through and downloads all CK files while current_date is before end_date
+    while current_date < end_date:
+        current_yyyydoy = current_date.strftime("%Y%j")
+        next_yyyydoy = next_date.strftime("%Y%j")
+        filename = f"lrosc_{current_yyyydoy}_{next_yyyydoy}_v01.bc"
+        url = "https://naif.jpl.nasa.gov/pub/naif/pds/data/lro-l-spice-6-v1.0/lrosp_1000/data/ck/" + filename
+        filepath = os.path.join(f"{path}/ck", filename)
+        
+        try:
+            print(f"Downloading {filename}...")
+            urllib.request.urlretrieve(url, filepath) # FIXED: Added download command
+        except Exception as e:
+            print(f"Failed to download {filename} (might not exist yet): {e}")
+
+        current_date = current_date + timedelta(days=10)
+        next_date = next_date + timedelta(days=10)
+
+# datetime = YYYY MM DD
+start_date = datetime(2009, 6, 30)
+end_date = datetime(2009, 12, 31)
+get_kernels(start_date, end_date, "/home/aajung/lunar-project/kernels")
 
 #################### round down the floats to ~8 sig figs?
 
@@ -140,6 +230,10 @@ def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir)
     
         
 
-# Execute the stream
-dataset_csv_convert(30.0, 35.0, 30.0, 35.0, "C:/Users/16679/lunar-topography",
-                    "C:/Users/16679/lunar-topography/LROC NeRF")
+# personal laptop
+# dataset_csv_convert(30.0, 35.0, 30.0, 35.0, "C:/Users/16679/lunar-topography",
+#                     "C:/Users/16679/lunar-topography/LROC NeRF")
+
+# Curiosity
+# dataset_csv_convert(30.0, 35.0, 30.0, 35.0, "~/lunar-project/lunar-topography",
+#                     "~/lunar-project/lunar-topography/LROC NeRF")
