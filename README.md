@@ -2,3 +2,18 @@
 
 ## Purpose
 Primary goal is to develop a machine learning model capable of producing a lunar gravity model using data from NASA's Lunar Reconnaissance Orbiter (LRO).
+
+## Requirements
+The requirements.txt file is a list of all Python libraries used in both working with the altimetry and image data of the LRO.
+First, by using pip freeze > requirements.txt within an environment, all current libraries downloaded in the virtual environment (venv) are saved in the requirements.txt file.
+```
+pip freeze > requirements.txt
+```
+This text file of required libraries are already saved within the repository, and can be downloaded within a venv with pip install -r requirements.txt.
+```
+pip install -r requirements.txt
+```
+
+## Sources
+
+- [LROC Image Database]([https://twitter.com/dompizzie](https://pds.lroc.im-ldi.com/data/LRO-L-LROC-3-CDR-V1.0/LROLRC_1001/))
