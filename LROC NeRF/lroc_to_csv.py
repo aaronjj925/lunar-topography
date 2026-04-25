@@ -27,6 +27,7 @@ According to Section 4.1.3 of Calibration Reports:
 
 
 def get_kernels(start_date, end_date, path):
+    kernelList = []
 
     #####################################
     # Spacecraft Clock-Kernel
@@ -34,6 +35,7 @@ def get_kernels(start_date, end_date, path):
     url = "https://naif.jpl.nasa.gov/pub/naif/pds/data/lro-l-spice-6-v1.0/lrosp_1000/data/sclk/lro_clkcor_2025351_v00.tsc"
     filepath = os.path.join(f"{path}/sclk", "lro_clkcor_2025351_v00.tsc")
     urllib.request.urlretrieve(url, filepath)
+    kernelList.append(filepath)
 
     #####################################
     # Frames-Kernel
@@ -41,6 +43,7 @@ def get_kernels(start_date, end_date, path):
     url = "https://naif.jpl.nasa.gov/pub/naif/pds/data/lro-l-spice-6-v1.0/lrosp_1000/data/fk/lro_frames_2014049_v01.tf"
     filepath = os.path.join(f"{path}/fk", "lro_frames_2014049_v01.tf")
     urllib.request.urlretrieve(url, filepath)
+    kernelList.append(filepath)
 
     #####################################
     # Leapsecond-Kernel
@@ -48,6 +51,7 @@ def get_kernels(start_date, end_date, path):
     url = "https://naif.jpl.nasa.gov/pub/naif/pds/data/lro-l-spice-6-v1.0/lrosp_1000/data/lsk/naif0012.tls"
     filepath = os.path.join(f"{path}/lsk", "naif0012.tls")
     urllib.request.urlretrieve(url, filepath)
+    kernelList.append(filepath)
 
     #####################################
     # Planetary Constant-Kernel
@@ -55,6 +59,15 @@ def get_kernels(start_date, end_date, path):
     url = "https://naif.jpl.nasa.gov/pub/naif/pds/data/lro-l-spice-6-v1.0/lrosp_1000/data/pck/pck00010.tpc"
     filepath = os.path.join(f"{path}/pck", "pck00010.tpc")
     urllib.request.urlretrieve(url, filepath)
+    kernelList.append(filepath)
+
+    #####################################
+    # Instrument Kernel
+    os.makedirs(f"{path}/ik", exist_ok=True)
+    url = "https://naif.jpl.nasa.gov/pub/naif/pds/data/lro-l-spice-6-v1.0/lrosp_1000/data/ik/lro_lroc_v20.ti"
+    filepath = os.path.join(f"{path}/ik", "lro_lroc_v20.ti")
+    urllib.request.urlretrieve(url, filepath)
+    kernelList.append(filepath)
 
     #####################################
     # C-Kernel Search
@@ -108,13 +121,16 @@ def get_kernels(start_date, end_date, path):
         else:
             current_date = current_date + timedelta(days=10)
             next_date = next_date + timedelta(days=10)
+            kernelList.append(filepath)
+    
+    with open('kernelList.txt', 'w') as f:
+        for item in kernelList:
+            f.write(f"{item}\n")
 
 # datetime = YYYY MM DD
 start_date = datetime(2009, 6, 30)
 end_date = datetime(2009, 12, 31)
 get_kernels(start_date, end_date, "/home/aajung/lunar-project/kernels")
-
-#################### round down the floats to ~8 sig figs?
 
 
 def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir):
@@ -191,24 +207,13 @@ def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir)
                     pos_y = t_to_c * np.cos(lat_rad) * np.sin(lon_rad)
                     pos_z = t_to_c * np.sin(lat_rad)
 
-                    # # commands using spiceypy (NASA spice )
-                    # print(f'SpiceyPy for {spice.tkvrsn("TOOLKIT")} ready!')
-                    # spice.furnsh("lro_meta_kernel.txt")
-                    # time_utc = row[14] # time at which first line of image is recorded
-                    # et = spice.str2et(time_utc)
-
-                    # # 3. Get the rotation matrix from Moon Mean Earth (MOON_ME) to LRO Spacecraft (LRO_SC)
-                    # rotation_matrix = spice.pxform("MOON_ME", "LRO_SC", et)
-
-                    # # 4. Convert the matrix to a quaternion
-                    # # SPICE returns quaternions in [w, x, y, z] format (scalar first)
-                    # quaternion = spice.m2q(rotation_matrix)
-                    # print(type(quaternion))
-                    # print(quaternion[0])
-                    # print(quaternion[1])
-                    # print(quaternion[2])
-                    # print(quaternion[3])
-                    # return
+                    # calculating quaternion by using SPICE kernels
+                    with open("kernelList.txt", "r") as f:
+                        kernelList = [line.strip() for line in f.readlines()]
+                    spice.furnsh(kernelList)
+                    rotation_matrix = spice.pxform("MOON_ME", "LRO_SC", et)
+                    et = spice.str2et(time_utc)
+                    quaternion = spice.m2q(rotation_matrix)
 
 
                     camera_xyz = "[x,y,z]"
