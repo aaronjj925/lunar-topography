@@ -13,7 +13,3 @@ This text file of required libraries are already saved within the repository, an
 ```
 pip install -r requirements.txt
 ```
-
-## Sources
-
-- [LROC Image Database](https://pds.lroc.im-ldi.com/data/LRO-L-LROC-3-CDR-V1.0/LROLRC_1001/)
