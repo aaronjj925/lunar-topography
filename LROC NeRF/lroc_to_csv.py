@@ -1,3 +1,4 @@
+# Required library imports
 import requests
 import csv
 import os
@@ -25,7 +26,7 @@ According to Section 4.1.3 of Calibration Reports:
     
 '''
 
-
+# function to get all necessary kernels from online for quaternion calculations
 def get_kernels(start_date, end_date, path):
     kernelList = []
 
@@ -164,7 +165,7 @@ def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir,
                              "ImageFrameQuaternion Q2", "ImageFrameQuaternion Q3", "ImageFrameQuaternion Q4",
                              "dataset_name", "image_path", "Cx", "Cy", "Pixel Width", "Pixel Height", "Time UTC"])
             img_count = 0
-            latest_date = datetime(2010, 1, 1)
+
             for row in reader:
 
                 # center latitude and longitude
@@ -187,7 +188,7 @@ def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir,
                 # Parse into datetime object
                 time_dt = datetime.strptime(time_utc, "%Y-%m-%d %H:%M:%S.%f")
 
-                # stops the script from running any further once it goes past the max cutoff date
+                # stops the script from running any further once it goes past the max cutoff date to save time
                 if (time_dt > end_date):
                     break
 
@@ -232,25 +233,19 @@ def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir,
                         kernelList = [line.strip() for line in f.readlines()]
                     spice.furnsh(kernelList)
                     et = spice.str2et(time_utc)
-                    if camera_type == "nacr":
-                        rotation_matrix = spice.pxform("IAU_MOON", "LRO_SC_BUS", et)
-                    else: 
-                        rotation_matrix = spice.pxform("IAU_MOON", "LRO_SC_BUS", et)
+                    # getting the rotation matrix from moon frame to LRO frame
+                    rotation_matrix = spice.pxform("IAU_MOON", "LRO_SC_BUS", et)
+                    # getting quaternion values from rotation matrix and storing them for the csv file
                     quaternion = spice.m2q(rotation_matrix)
                     q1 = quaternion[1]
                     q2 = quaternion[2]
                     q3 = quaternion[3]
                     q4 = quaternion[0]
                     spice.kclear()
-                    # q1 = 0
-                    # q2 = 0
-                    # q3 = 0
-                    # q4 = 0
-
 
                     camera_xyz = "[x,y,z]"
-                    w = int(row[53]) #line samples (amount of samples per line)
-                    h = int(row[52]) #image lines (total amount of horizontal lines)
+                    w = int(row[53]) # line samples (amount of samples per line)
+                    h = int(row[52]) # image lines (total amount of horizontal lines)
                     cx = w/2
                     cy = h/2
                         
