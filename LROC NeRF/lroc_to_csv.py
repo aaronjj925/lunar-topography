@@ -136,7 +136,7 @@ get_kernels(start_date, end_date, "/home/aajung/lunar-project/kernels")
 def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir):
 
     # LROC1001 spams from 2009 6/30 to 12/31 (in YYYYDOY, it's 2009 181 to 365)
-    url = "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-3-CDR-V1.0/LROLRC_1001/INDEX/CUMINDEX.TAB"
+    url = "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-3-CDR-V1.0/LROLRC_1066A/INDEX/CUMINDEX.TAB"
     with requests.get(url, stream=True) as r:
 
         # decode the streaming data from requests as str
@@ -171,9 +171,15 @@ def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir)
                 camera_type = (str(row[4]).strip())[0:4]
 
                 time_utc = row[14]
+                # Strip leading/trailing whitespace
+                time_utc = time_utc.strip()
+
+                # Parse into datetime object
+                time_dt = datetime.strptime(time_utc, "%Y-%m-%d %H:%M:%S.%f")
+                cutoff_dt = datetime(2016, 1, 1)
 
                 
-                if min_lat <= center_lat <= max_lat and min_lon <= center_lon <= max_lon and nac_or_wac == "nac":
+                if min_lat <= center_lat <= max_lat and min_lon <= center_lon <= max_lon and nac_or_wac == "nac" and time_dt > cutoff_dt:
                     time_utc = row[14]
                     # focal lengths of NAC right and left are slightly different
                     if camera_type == "nacr":
