@@ -127,16 +127,13 @@ def get_kernels(start_date, end_date, path):
         for item in kernelList:
             f.write(f"{item}\n")
 
-# datetime = YYYY MM DD
-start_date = datetime(2009, 6, 30)
-end_date = datetime(2009, 12, 31)
-get_kernels(start_date, end_date, "/home/aajung/lunar-project/kernels")
+
 
 
 def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir):
 
     # LROC1001 spams from 2009 6/30 to 12/31 (in YYYYDOY, it's 2009 181 to 365)
-    url = "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-3-CDR-V1.0/LROLRC_1066A/INDEX/CUMINDEX.TAB"
+    url = "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-3-CDR-V1.0/LROLRC_1001/INDEX/CUMINDEX.TAB"
     with requests.get(url, stream=True) as r:
 
         # decode the streaming data from requests as str
@@ -176,7 +173,7 @@ def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir)
 
                 # Parse into datetime object
                 time_dt = datetime.strptime(time_utc, "%Y-%m-%d %H:%M:%S.%f")
-                cutoff_dt = datetime(2016, 1, 1)
+                cutoff_dt = datetime(2009, 11, 1)
 
                 
                 if min_lat <= center_lat <= max_lat and min_lon <= center_lon <= max_lon and nac_or_wac == "nac" and time_dt > cutoff_dt:
@@ -231,10 +228,6 @@ def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir)
 
 
                     camera_xyz = "[x,y,z]"
-                    q1 = 0
-                    q2 = 0
-                    q3 = 0
-                    q4 = 0
                     w = int(row[53]) #line samples (amount of samples per line)
                     h = int(row[52]) #image lines (total amount of horizontal lines)
                     cx = w/2
@@ -257,6 +250,12 @@ def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir)
 # dataset_csv_convert(30.0, 35.0, 30.0, 35.0, "C:/Users/16679/lunar-topography",
 #                     "C:/Users/16679/lunar-topography/LROC NeRF")
 
+
+# datetime = YYYY MM DD
+# start_date = datetime(2009, 6, 30)
+# end_date = datetime(2009, 12, 31)
+# get_kernels(start_date, end_date, "/home/aajung/lunar-project/kernels")
+
 # Curiosity
-# dataset_csv_convert(30.0, 35.0, 30.0, 35.0, "~/lunar-project/lunar-topography",
-#                     "~/lunar-project/lunar-topography/LROC NeRF")
+dataset_csv_convert(30.0, 35.0, 30.0, 35.0, "/home/aajung/lunar-project/kernels/lunar-project/lunar-topography",
+                    "/home/aajung/lunar-project/kernels/lunar-project/lunar-topography/LROC NeRF")

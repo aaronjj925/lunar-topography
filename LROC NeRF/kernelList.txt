@@ -2,6 +2,7 @@
 /home/aajung/lunar-project/kernels/fk/lro_frames_2014049_v01.tf
 /home/aajung/lunar-project/kernels/lsk/naif0012.tls
 /home/aajung/lunar-project/kernels/pck/pck00010.tpc
+/home/aajung/lunar-project/kernels/ik/lro_lroc_v20.ti
 /home/aajung/lunar-project/kernels/ck/lrosc_2009172_2009182_v01.bc
 /home/aajung/lunar-project/kernels/ck/lrosc_2009182_2009192_v01.bc
 /home/aajung/lunar-project/kernels/ck/lrosc_2009192_2009202_v01.bc
