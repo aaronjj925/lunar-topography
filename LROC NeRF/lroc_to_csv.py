@@ -92,7 +92,17 @@ def get_kernels(start_date, end_date, path):
         # if found, print statement runs and the files begin downloading
         try:
             urllib.request.urlopen(req, timeout=5)
-            print(f"Viable Starting File found at {filename}")
+            print(f"Found viable starting file found at {filename}. Downloading first file")
+            # download first file while you're at it
+            current_yyyydoy = current_date.strftime("%Y%j")
+            next_yyyydoy = next_date.strftime("%Y%j")
+            filename = f"lrosc_{current_yyyydoy}_{next_yyyydoy}_v01.bc"
+            url = "https://naif.jpl.nasa.gov/pub/naif/pds/data/lro-l-spice-6-v1.0/lrosp_1000/data/ck/" + filename
+            filepath = os.path.join(f"{path}/ck", filename)
+            urllib.request.urlretrieve(url, filepath)
+            # going by 1 day difference at a time because date spacing is irregular
+            current_date = next_date
+            next_date = next_date + timedelta(days=1)
             break
         # if unable to be found, the dates go back one day and checks again 
         # (goes back a day to ensure start date is within time period)
@@ -100,6 +110,7 @@ def get_kernels(start_date, end_date, path):
             print(f"Failed to find {filename}. Error: {e}. Still looking for viable starting file")
         current_date = current_date - timedelta(days=1)
         next_date = next_date - timedelta(days=1)
+
 
     # goes through and downloads all CK files while current_date is before end_date
     while current_date < end_date:
@@ -109,18 +120,20 @@ def get_kernels(start_date, end_date, path):
         url = "https://naif.jpl.nasa.gov/pub/naif/pds/data/lro-l-spice-6-v1.0/lrosp_1000/data/ck/" + filename
         filepath = os.path.join(f"{path}/ck", filename)
         
-        if (next_date-current_date) > timedelta(days=10):
-            current_date = next_date - timedelta(days=10)
-            next_date = next_date
         try:
-            print(f"Downloading {filename}")
             urllib.request.urlretrieve(url, filepath)
         except Exception as e:
-            print(f"Failed to download {filename} (might not exist yet): {e}")
+            print(f"Failed to download {filename}: {e}")
+            if (next_date - current_date) > timedelta(days=12):
+                print("Gap between dates, updating current_date by one day and searching.")
+                current_date = current_date + timedelta(days=1)
+                next_date = current_date + timedelta(days=1)
+            else:
+                next_date = next_date + timedelta(days=1)
+        else: # only if try block worked
+            print(f"Downloading {filename}")
+            current_date = next_date
             next_date = next_date + timedelta(days=1)
-        else:
-            current_date = current_date + timedelta(days=10)
-            next_date = next_date + timedelta(days=10)
             kernelList.append(filepath)
     
     with open('kernelList.txt', 'w') as f:
@@ -130,10 +143,10 @@ def get_kernels(start_date, end_date, path):
 
 
 
-def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir):
+def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir, start_date, end_date):
 
     # LROC1001 spams from 2009 6/30 to 12/31 (in YYYYDOY, it's 2009 181 to 365)
-    url = "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-3-CDR-V1.0/LROLRC_1001/INDEX/CUMINDEX.TAB"
+    url = "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-3-CDR-V1.0/LROLRC_1030/INDEX/CUMINDEX.TAB"
     with requests.get(url, stream=True) as r:
 
         # decode the streaming data from requests as str
@@ -149,9 +162,9 @@ def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir)
                              "Sensor Position Y J2K", 
                              "Sensor Position Z J2K", "Camera XYZ", "ImageFrameQuaternion Q1", 
                              "ImageFrameQuaternion Q2", "ImageFrameQuaternion Q3", "ImageFrameQuaternion Q4",
-                             "dataset_name", "image_path", "Cx", "Cy", "Pixel Width", "Pixel Height"])
+                             "dataset_name", "image_path", "Cx", "Cy", "Pixel Width", "Pixel Height", "Time UTC"])
             img_count = 0
-            
+            latest_date = datetime(2010, 1, 1)
             for row in reader:
 
                 # center latitude and longitude
@@ -173,11 +186,15 @@ def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir)
 
                 # Parse into datetime object
                 time_dt = datetime.strptime(time_utc, "%Y-%m-%d %H:%M:%S.%f")
-                cutoff_dt = datetime(2009, 11, 1)
+
+                # stops the script from running any further once it goes past the max cutoff date
+                if (time_dt > end_date):
+                    break
 
                 
-                if min_lat <= center_lat <= max_lat and min_lon <= center_lon <= max_lon and nac_or_wac == "nac" and time_dt > cutoff_dt:
-                    time_utc = row[14]
+                if (min_lat <= center_lat <= max_lat and min_lon <= center_lon <= max_lon and nac_or_wac == "nac" 
+                and time_dt > start_date and time_dt < end_date):
+
                     # focal lengths of NAC right and left are slightly different
                     if camera_type == "nacr":
                         focal_meters = 701.57e-3 # in meters
@@ -210,21 +227,25 @@ def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir)
                     pos_y = t_to_c * np.cos(lat_rad) * np.sin(lon_rad)
                     pos_z = t_to_c * np.sin(lat_rad)
 
-                                        # calculating quaternion by using SPICE kernels
+                    # calculating quaternion by using SPICE kernels
                     with open("kernelList.txt", "r") as f:
                         kernelList = [line.strip() for line in f.readlines()]
                     spice.furnsh(kernelList)
                     et = spice.str2et(time_utc)
                     if camera_type == "nacr":
-                        rotation_matrix = spice.pxform("IAU_MOON", "LRO_LROCNACR", et)
+                        rotation_matrix = spice.pxform("IAU_MOON", "LRO_SC_BUS", et)
                     else: 
-                        rotation_matrix = spice.pxform("IAU_MOON", "LRO_LROCNACL", et)
+                        rotation_matrix = spice.pxform("IAU_MOON", "LRO_SC_BUS", et)
                     quaternion = spice.m2q(rotation_matrix)
                     q1 = quaternion[1]
                     q2 = quaternion[2]
                     q3 = quaternion[3]
                     q4 = quaternion[0]
                     spice.kclear()
+                    # q1 = 0
+                    # q2 = 0
+                    # q3 = 0
+                    # q4 = 0
 
 
                     camera_xyz = "[x,y,z]"
@@ -235,8 +256,10 @@ def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir)
                         
                     writer.writerow([id, lat, lon, t_to_c, sc_alt, h_fov, v_fov, focal_length,
                                       pos_x, pos_y, pos_z, 
-                                     camera_xyz, q1, q2, q3, q4, dataset_name, img_path, cx, cy, w, h])
+                                     camera_xyz, q1, q2, q3, q4, dataset_name, img_path, cx, cy, w, h, time_utc])
+
                     img_count += 1
+                    print(f"Image No. {img_count} Downloaded")
     print(f"Total Images Found and Stored: {img_count}")
 
     source_file = os.path.join(src_dir, fileName)
@@ -251,11 +274,10 @@ def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir)
 #                     "C:/Users/16679/lunar-topography/LROC NeRF")
 
 
+# Curiosity Paths
 # datetime = YYYY MM DD
-# start_date = datetime(2009, 6, 30)
-# end_date = datetime(2009, 12, 31)
+start_date = datetime(2011, 1, 1)
+end_date = datetime(2012, 1, 1)
 # get_kernels(start_date, end_date, "/home/aajung/lunar-project/kernels")
-
-# Curiosity
-dataset_csv_convert(30.0, 35.0, 30.0, 35.0, "/home/aajung/lunar-project/kernels/lunar-project/lunar-topography",
-                    "/home/aajung/lunar-project/kernels/lunar-project/lunar-topography/LROC NeRF")
+dataset_csv_convert(30.0, 33.0, 30.0, 33.0, "/home/aajung/lunar-project/kernels/lunar-project/lunar-topography",
+                    "/home/aajung/lunar-project/kernels/lunar-project/lunar-topography/LROC NeRF", start_date, end_date)
