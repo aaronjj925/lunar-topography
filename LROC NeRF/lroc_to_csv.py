@@ -213,13 +213,21 @@ def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, src_dir, target_dir)
                     pos_y = t_to_c * np.cos(lat_rad) * np.sin(lon_rad)
                     pos_z = t_to_c * np.sin(lat_rad)
 
-                    # calculating quaternion by using SPICE kernels
+                                        # calculating quaternion by using SPICE kernels
                     with open("kernelList.txt", "r") as f:
                         kernelList = [line.strip() for line in f.readlines()]
                     spice.furnsh(kernelList)
-                    rotation_matrix = spice.pxform("MOON_ME", "LRO_SC", et)
                     et = spice.str2et(time_utc)
+                    if camera_type == "nacr":
+                        rotation_matrix = spice.pxform("IAU_MOON", "LRO_LROCNACR", et)
+                    else: 
+                        rotation_matrix = spice.pxform("IAU_MOON", "LRO_LROCNACL", et)
                     quaternion = spice.m2q(rotation_matrix)
+                    q1 = quaternion[1]
+                    q2 = quaternion[2]
+                    q3 = quaternion[3]
+                    q4 = quaternion[0]
+                    spice.kclear()
 
 
                     camera_xyz = "[x,y,z]"
