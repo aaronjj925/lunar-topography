@@ -28,13 +28,6 @@ According to Section 4.1.3 of Calibration Reports:
     
 '''
 
-<<<<<<< HEAD
-
-=======
-# function to get all necessary kernels from online for quaternion calculations
-def get_kernels(start_date, end_date, path):
-    kernelList = []
->>>>>>> cd371635d7b4c092c96a67dcef1486abe869a35c
 
 def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, 
 src_dir, target_dir, start_date, end_date):
@@ -175,11 +168,12 @@ if __name__ == "__main__":
 
     # storing product ids to set the correct path to put the path into the folder
     df = pd.read_csv("/home/aajung/lunar-project/lunar-topography/LROC NeRF/lroc_data.csv")
-    for i in range(len(df)-1):
-        id = df.iloc[i+1,0]
+    print(len(df))
+    for i in range(len(df)):
+        id = df.iloc[i,0]
         png_filepath = f"~/lunar-project/lroc_png_files/{id}.png"
-        df.iloc[i+1,17] = png_filepath
-        print(f"Completed: {i}")
+        df.iloc[i,17] = png_filepath
+        print(f"Completed: {i+1}")
 
     # saving result to new csv file
     df.to_csv('lroc_data(with png_path).csv', index=False)
