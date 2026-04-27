@@ -1,7 +1,7 @@
 # Machine Learning for Lunar Topography Applications
 
 ## Purpose
-Primary goal is to develop a machine learning model capable of producing a lunar gravity model using data from NASA's Lunar Reconnaissance Orbiter (LRO).
+Primary goal is to develop a machine learning model capable of producing a lunar gravity model using data from NASA's Lunar Reconnaissance Orbiter (LRO). This repository contains two methods: altimetry data from the Lunar Orbiter Laser Altimeter (LOLA) and the LRO's Camera (LROC). These methods use Convolutional Neural Networks and Neural Radiance Fields, respectively.
 
 ## Requirements
 The requirements.txt file is a list of all Python libraries used in both working with the altimetry and image data of the LRO.
