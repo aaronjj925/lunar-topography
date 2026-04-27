@@ -3,14 +3,14 @@ import requests
 import cv2
 import numpy as np
 
-# --- NUMPY 2.0 PATCH ---
-# This fixes the broken planetaryimage library by restoring the deleted function alias
+# numpy 2.0 merged np.product and np.prod, but planetaryimage works with older version, so it needs to product=prod
 if not hasattr(np, 'product'):
     np.product = np.prod
-# -----------------------
 
 from PIL import Image
 from planetaryimage import PDS3Image
+
+
 
 def find_img_url(data):
     """Recursively scans the JSON response for .IMG or .LBL files."""

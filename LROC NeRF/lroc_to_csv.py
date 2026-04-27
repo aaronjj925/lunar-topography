@@ -178,5 +178,3 @@ if __name__ == "__main__":
     # saving result to new csv file
     df.to_csv('lroc_data(with png_path).csv', index=False)
 
-
-
