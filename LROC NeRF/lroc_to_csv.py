@@ -1,3 +1,4 @@
+# Required library imports
 import requests
 import csv
 import os
@@ -27,7 +28,13 @@ According to Section 4.1.3 of Calibration Reports:
     
 '''
 
+<<<<<<< HEAD
 
+=======
+# function to get all necessary kernels from online for quaternion calculations
+def get_kernels(start_date, end_date, path):
+    kernelList = []
+>>>>>>> cd371635d7b4c092c96a67dcef1486abe869a35c
 
 def dataset_csv_convert(min_lat, max_lat, min_lon, max_lon, 
 src_dir, target_dir, start_date, end_date):
@@ -69,7 +76,7 @@ src_dir, target_dir, start_date, end_date):
                 # Parse into datetime object
                 time_dt = datetime.strptime(time_utc, "%Y-%m-%d %H:%M:%S.%f")
 
-                # stops the script from running any further once it goes past the max cutoff date
+                # stops the script from running any further once it goes past the max cutoff date to save time
                 if (time_dt > end_date):
                     break
 
@@ -122,10 +129,9 @@ src_dir, target_dir, start_date, end_date):
                         kernelList = [line.strip() for line in f.readlines()]
                     spice.furnsh(kernelList)
                     et = spice.str2et(time_utc)
-                    if camera_type == "nacr":
-                        rotation_matrix = spice.pxform("IAU_MOON", "LRO_SC_BUS", et)
-                    else: 
-                        rotation_matrix = spice.pxform("IAU_MOON", "LRO_SC_BUS", et)
+                    # getting the rotation matrix from moon frame to LRO frame
+                    rotation_matrix = spice.pxform("IAU_MOON", "LRO_SC_BUS", et)
+                    # getting quaternion values from rotation matrix and storing them for the csv file
                     quaternion = spice.m2q(rotation_matrix)
                     q1 = quaternion[1]
                     q2 = quaternion[2]
