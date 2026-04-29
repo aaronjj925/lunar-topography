@@ -146,12 +146,12 @@ src_dir, target_dir, start_date, end_date):
                     img_count += 1
                     print(f"Image No. {img_count} Downloaded")
     print(f"Total Images Found and Stored: {img_count}")
-    return product_ids
 
     source_file = os.path.join(src_dir, fileName)
     target_file = os.path.join(target_dir, fileName)
     if os.path.isfile(source_file):
         shutil.move(source_file, target_file)
+    return product_ids
     
 
 
