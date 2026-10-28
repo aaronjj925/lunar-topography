@@ -1,15 +1,13 @@
 import os
 import requests
-import cv2
 import numpy as np
 
-# numpy 2.0 merged np.product and np.prod, but planetaryimage works with older version, so it needs to product=prod
+# numpy 2.0 merged np.product and np.prod, but planetaryimage works with older versions
 if not hasattr(np, 'product'):
     np.product = np.prod
 
 from PIL import Image
 from planetaryimage import PDS3Image
-
 
 
 def find_img_url(data):
@@ -29,6 +27,7 @@ def find_img_url(data):
             return data[:-4] + '.IMG'
     return None
 
+
 def download_and_convert_lroc(product_ids, save_folder="lroc_processed"):
     os.makedirs(save_folder, exist_ok=True)
     
@@ -47,19 +46,19 @@ def download_and_convert_lroc(product_ids, save_folder="lroc_processed"):
         }
         
         try:
-            print(f"Searching NASA PDS Index...")
+            print("Searching NASA PDS Index...")
             response = requests.get(base_api_url, params=params, timeout=15)
             docs = response.json().get("response", {}).get("docs", [])
             
             if not docs:
-                print(f"  [!] Not found in the PDS index. Skipping.")
+                print("  [!] Not found in the PDS index. Skipping.")
                 continue
                 
             doc = docs[0]
             img_url = find_img_url(doc)
                         
             if not img_url:
-                print(f"  [!] Still no .IMG link found.")
+                print("  [!] Still no .IMG link found.")
                 continue
                 
             # --- PROPER URL CONSTRUCTION ---
@@ -89,65 +88,83 @@ def download_and_convert_lroc(product_ids, save_folder="lroc_processed"):
                     file.write(chunk)
             print(f"  [SUCCESS] Downloaded raw {img_filename}")
             
-            # --- CONVERSION PHASE (TRUE ALBEDO INTEGRATION) ---
-            print(f"Converting to PNG (Applying True Albedo Sigma Stretch)...")
+# --- CONVERSION PHASE ---
+            print("Converting to PNG...")
             pds_img = PDS3Image.open(img_filepath)
-            
-            # Squeeze the array into a flat 2D grid
             image_array = np.squeeze(pds_img.image).astype(np.float32)
-            valid_pixels = image_array[image_array > 0]
-            
-            if len(valid_pixels) > 0:
-                # 1. Find the true average brightness of the specific terrain
-                mean_val = np.mean(valid_pixels)
-                std_val = np.std(valid_pixels)
-                
-                # 2. Set limits based on Standard Deviation, NOT percentiles.
-                # Black point: slightly below the average dirt color
-                p_low = mean_val - (1.5 * std_val) 
-                # White point: pushed far up so dark rocks don't get stretched to pure white
-                p_high = mean_val + (4.0 * std_val) 
-                
-                # 3. Clip and scale to the new anchored limits
-                image_array_clipped = np.clip(image_array, p_low, p_high)
-                
-                if p_high > p_low:
-                    normalized_float = (image_array_clipped - p_low) / (p_high - p_low)
+
+            # Mask out NaNs, Infs, and PDS special negative sentinel values (< -1e30 or < 0)
+            valid_mask = np.isfinite(image_array) & (image_array > 0.0)
+
+            if np.any(valid_mask):
+                valid_pixels = image_array[valid_mask]
+
+                # Percentile stretch: clips extreme outliers to maximize lunar surface contrast
+                vmin, vmax = np.percentile(valid_pixels, (0.5, 99.5))
+
+                if vmax > vmin:
+                    clipped = np.clip(image_array, vmin, vmax)
+                    normalized = (clipped - vmin) / (vmax - vmin) * 255.0
                 else:
-                    normalized_float = np.zeros_like(image_array_clipped)
-                
-                # 4. Apply standard sRGB Gamma (2.2) for natural contrast weighting
-                gamma = 2.2 
-                gamma_corrected = np.power(normalized_float, 1.0 / gamma)
-                
-                img_8bit = (gamma_corrected * 255.0).astype(np.uint8)
-                
-                # 5. Extremely mild CLAHE (clipLimit 1.2) just to preserve COLMAP edges
-                clahe = cv2.createCLAHE(clipLimit=1.2, tileGridSize=(32, 32))
-                final_image = clahe.apply(img_8bit)
-                
+                    normalized = np.zeros_like(image_array)
+
+                # Set masked/NULL background pixels to black (0)
+                normalized[~valid_mask] = 0.0
             else:
-                final_image = image_array.astype(np.uint8)
-            
+                normalized = np.zeros_like(image_array)
+
+            final_image = normalized.astype(np.uint8)
+
             img = Image.fromarray(final_image)
             img.save(png_filepath)
             print(f"  [SUCCESS] Converted and saved as {png_filename}")
             
             # --- CLEANUP PHASE ---
             os.remove(img_filepath)
-            print(f"  [CLEANUP] Deleted the raw .IMG file.")
+            print("  [CLEANUP] Deleted the raw .IMG file.")
             
         except Exception as e:
             print(f"  [ERROR] Pipeline failed for {pid}: {e}")
+
 
 # ==========================================
 # EXECUTION
 # ==========================================
 if __name__ == "__main__":
-    
     my_product_ids = [
+        "M150314875LC",
+        "M150314875RC",
+        "M152669226LC",
+        "M152669226RC",
+        "M155030843LC",
+        "M155030843RC",
+        "M155037640RC",
+        "M157391825LC",
+        "M157391825RC",
+        "M159746292LC",
+        "M159746292RC",
+        "M162094243LC",
+        "M162094243RC",
+        "M162094272LC",
+        "M162094272RC",
+        "M162107819LC",
         "M162107819RC",
-        "M172717111RC"
+        "M165631933LC",
+        "M165631933RC",
+        "M165645494LC",
+        "M165645494RC",
+        "M167993567LC",
+        "M167993567RC",
+        "M168000370LC",
+        "M168000370RC",
+        "M168007168LC",
+        "M168007168RC",
+        "M170361668LC",
+        "M170361668RC",
+        "M172717067LC",
+        "M172717067RC",
+        "M172717111LC",
+        "M172717111RC",
     ]
     
     download_and_convert_lroc(my_product_ids)

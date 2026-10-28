@@ -11,7 +11,7 @@ import urllib.error
 
 def get_kernels(start_date, end_date, path):
     kernelList = []
-
+    
     #####################################
     # Spacecraft Clock-Kernel
     os.makedirs(f"{path}/sclk", exist_ok=True)

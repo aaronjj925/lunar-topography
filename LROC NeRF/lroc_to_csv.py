@@ -160,20 +160,22 @@ if __name__ == "__main__":
     # datetime = YYYY MM DD
     start_date = datetime(2011, 1, 1)
     end_date = datetime(2012, 1, 1)
-    # product_ids = dataset_csv_convert(30.0, 33.0, 30.0, 33.0, 
-    #                     "/home/aajung/lunar-project/lunar-project/lunar-topography",
-    #                     "/home/aajung/lunar-project/lunar-project/lunar-topography/LROC NeRF", 
-    #                     start_date, end_date)
-    # lroc_img_download.download_and_convert_lroc(product_ids)
+    product_ids = dataset_csv_convert(30.0, 33.0, 30.0, 33.0, 
+                        "/home/aajung/lunar-project/lunar-project/lunar-topography",
+                        "/home/aajung/lunar-project/lunar-project/lunar-topography/LROC NeRF", 
+                        start_date, end_date)
+    lroc_img_download.download_and_convert_lroc(product_ids)
 
     # storing product ids to set the correct path to put the path into the folder
     df = pd.read_csv("/home/aajung/lunar-project/lunar-topography/LROC NeRF/lroc_data.csv")
     print(len(df))
     for i in range(len(df)):
         id = df.iloc[i,0]
-        png_filepath = f"~/lunar-project/lroc_png_files/{id}.png"
+        # png_filepath = f"~/lunar-project/lroc_png_files/{id}.png"
+        # this new png_filepath is the path within the docker container
+        png_filepath = f"/workspace/data/lunar_data/{id}.png"
         df.iloc[i,17] = png_filepath
         print(f"Completed: {i+1}")
 
     # saving result to new csv file
-    df.to_csv('lroc_data(with png_path).csv', index=False)
+    df.to_csv('lroc_data_with_png.csv', index=False)
