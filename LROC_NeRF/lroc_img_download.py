@@ -28,7 +28,7 @@ def find_img_url(data):
     return None
 
 
-def download_and_convert_lroc(product_ids, save_folder="lroc_processed"):
+def download_and_convert_lroc(product_ids, save_folder="lroc_pngs"):
     os.makedirs(save_folder, exist_ok=True)
     
     base_api_url = "https://pds-imaging.jpl.nasa.gov/solr/pds_archives/select"
@@ -124,12 +124,10 @@ def download_and_convert_lroc(product_ids, save_folder="lroc_processed"):
             print("  [CLEANUP] Deleted the raw .IMG file.")
             
         except Exception as e:
-            print(f"  [ERROR] Pipeline failed for {pid}: {e}")
+            print(e)
 
 
-# ==========================================
 # EXECUTION
-# ==========================================
 if __name__ == "__main__":
     my_product_ids = [
         "M150314875LC",

@@ -46,13 +46,15 @@ src_dir, target_dir, start_date, end_date):
         with open(fileName, 'w', newline='') as csvfile:
             writer = csv.writer(csvfile)
             # all column names
-            writer.writerow(["Product ID","Latitude", "Longitude", "Target to Center", "S/C Altitude",
-                             "Horizontal FOV", "Vertical FOV", "Focal Length", "Sensor Position X J2K", 
-                             "Sensor Position Y J2K", 
-                             "Sensor Position Z J2K", "Camera XYZ", "ImageFrameQuaternion Q1", 
-                             "ImageFrameQuaternion Q2", "ImageFrameQuaternion Q3", "ImageFrameQuaternion Q4",
-                             "dataset_name", "image_path", "Cx", "Cy", "Pixel Width", "Pixel Height", "Time UTC"])
+            # "Horizontal Field Of View (deg)", "Vertical Field Of View (deg)"
+            writer.writerow(["Product ID","Latitude", "Longitude", "Target to Center", "S/C Altitude", "Target Range (m)"
+                             "Focal Length X (pix)", "Focal Length Y (pix)", "Focal Length", 
+                             "SensorPosition X J2K", "SensorPosition Y J2K", "SensorPosition Z J2K", "Camera XYZ", 
+                             "ImageFrameQuaternion Q1", "ImageFrameQuaternion Q2", "ImageFrameQuaternion Q3", 
+                             "ImageFrameQuaternion Q4",
+                             "dataset_name", "png_path", "Cx", "Cy", "Pixel Width", "Pixel Height", "Time UTC"])
             img_count = 0
+            
 
             for row in reader:
 
@@ -73,9 +75,11 @@ src_dir, target_dir, start_date, end_date):
                 if (time_dt > end_date):
                     break
 
-                
+                w = int(row[53]) # line samples (amount of samples per line)
+                h = int(row[52]) # image lines (total amount of horizontal lines)
+                # Conditional Checks: 1. within LL area, 2. nac, 3. time taken is within range, 4. image wxh is same
                 if (min_lat <= center_lat <= max_lat and min_lon <= center_lon <= max_lon and nac_or_wac == "nac" 
-                and time_dt > start_date and time_dt < end_date):
+                and time_dt > start_date and time_dt < end_date and w == 5064 and h == 52224):
 
                     # focal lengths of NAC right and left are slightly different
                     if camera_type == "nacr":
@@ -87,6 +91,7 @@ src_dir, target_dir, start_date, end_date):
 
                     t_to_c = float(row[80])*1000
                     sc_alt = float(row[79])*1000
+                    t_range = t_to_c-sc_alt
                     
                     # normal lat = latitude of camera itself (this one is good) aka sub-spacecraft lat
                     lat = float(row[65])
@@ -106,8 +111,12 @@ src_dir, target_dir, start_date, end_date):
                     UL_lat = float(row[77])
                     UL_lon = float(row[78])
                     # calculating the range of degrees the camera covers
-                    h_fov = abs(((UR_lon + LR_lon)/2) - ((UL_lon + LL_lon)/2))
-                    v_fov = abs(((UR_lat + UL_lat)/2) - ((LR_lat + LL_lat)/2))
+                    ########################
+                    # using these variable names for focal pix len for x & y just to not have to change as much code
+                    # h_fov = abs(((UR_lon + LR_lon)/2) - ((UL_lon + LL_lon)/2))
+                    # v_fov = abs(((UR_lat + UL_lat)/2) - ((LR_lat + LL_lat)/2))
+                    h_fov = w
+                    v_fov = h
                     
                     # converting sc angle values to radians, and then converting to spherical coordinates
                     lat_rad = np.deg2rad(lat)
@@ -139,7 +148,7 @@ src_dir, target_dir, start_date, end_date):
                     cy = h/2
                         
                     product_ids.append(id)
-                    writer.writerow([id, lat, lon, t_to_c, sc_alt, h_fov, v_fov, focal_length,
+                    writer.writerow([id, lat, lon, t_to_c, sc_alt, t_range, h_fov, v_fov, focal_length,
                                       pos_x, pos_y, pos_z, 
                                      camera_xyz, q1, q2, q3, q4, dataset_name, img_path, cx, cy, w, h, time_utc])
 
@@ -162,12 +171,12 @@ if __name__ == "__main__":
     end_date = datetime(2012, 1, 1)
     product_ids = dataset_csv_convert(30.0, 33.0, 30.0, 33.0, 
                         "/home/aajung/lunar-project/lunar-project/lunar-topography",
-                        "/home/aajung/lunar-project/lunar-project/lunar-topography/LROC NeRF", 
+                        "/home/aajung/lunar-project/lunar-project/lunar-topography/LROC_NeRF", 
                         start_date, end_date)
     lroc_img_download.download_and_convert_lroc(product_ids)
 
     # storing product ids to set the correct path to put the path into the folder
-    df = pd.read_csv("/home/aajung/lunar-project/lunar-topography/LROC NeRF/lroc_data.csv")
+    df = pd.read_csv("/home/aajung/lunar-project/lunar-topography/LROC_NeRF/lroc_data.csv")
     print(len(df))
     for i in range(len(df)):
         id = df.iloc[i,0]
@@ -176,6 +185,8 @@ if __name__ == "__main__":
         png_filepath = f"/workspace/data/lunar_data/{id}.png"
         df.iloc[i,17] = png_filepath
         print(f"Completed: {i+1}")
-
+        
+    # FILE CLEANING: deletes old csv and replaces with redone one with new png paths
+    os.remove("/home/aajung/lunar-project/lunar-topography/LROC_NeRF/lroc_data.csv")
     # saving result to new csv file
-    df.to_csv('lroc_data_with_png.csv', index=False)
+    df.to_csv('lroc_data.csv', index=False)
