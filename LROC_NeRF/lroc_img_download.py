@@ -28,7 +28,7 @@ def find_img_url(data):
     return None
 
 
-def download_and_convert_lroc(product_ids, save_folder="lroc_pngs"):
+def download_and_convert_lroc(product_ids, save_folder="../../lroc_pngs"):
     os.makedirs(save_folder, exist_ok=True)
     
     base_api_url = "https://pds-imaging.jpl.nasa.gov/solr/pds_archives/select"

@@ -11,6 +11,7 @@ import urllib.error
 import math
 import lroc_img_download
 import pandas as pd
+import pixel_downscale
 
 
 '''
@@ -47,8 +48,8 @@ src_dir, target_dir, start_date, end_date):
             writer = csv.writer(csvfile)
             # all column names
             # "Horizontal Field Of View (deg)", "Vertical Field Of View (deg)"
-            writer.writerow(["Product ID","Latitude", "Longitude", "Target to Center", "S/C Altitude", "Target Range (m)"
-                             "Focal Length X (pix)", "Focal Length Y (pix)", "Focal Length", 
+            writer.writerow(["Product ID","Latitude", "Longitude", "Target to Center", "S/C Altitude", 
+                             "Target Range (m)","Horizontal Field of View (deg)", "Focal Length", 
                              "SensorPosition X J2K", "SensorPosition Y J2K", "SensorPosition Z J2K", "Camera XYZ", 
                              "ImageFrameQuaternion Q1", "ImageFrameQuaternion Q2", "ImageFrameQuaternion Q3", 
                              "ImageFrameQuaternion Q4",
@@ -110,13 +111,8 @@ src_dir, target_dir, start_date, end_date):
                     LL_lon = float(row[76])
                     UL_lat = float(row[77])
                     UL_lon = float(row[78])
-                    # calculating the range of degrees the camera covers
-                    ########################
-                    # using these variable names for focal pix len for x & y just to not have to change as much code
-                    # h_fov = abs(((UR_lon + LR_lon)/2) - ((UL_lon + LL_lon)/2))
-                    # v_fov = abs(((UR_lat + UL_lat)/2) - ((LR_lat + LL_lat)/2))
-                    h_fov = w
-                    v_fov = h
+                    # got from https://lroc.im-ldi.com/about/specs
+                    h_fov = 2.85
                     
                     # converting sc angle values to radians, and then converting to spherical coordinates
                     lat_rad = np.deg2rad(lat)
@@ -148,7 +144,7 @@ src_dir, target_dir, start_date, end_date):
                     cy = h/2
                         
                     product_ids.append(id)
-                    writer.writerow([id, lat, lon, t_to_c, sc_alt, t_range, h_fov, v_fov, focal_length,
+                    writer.writerow([id, lat, lon, t_to_c, sc_alt, t_range, h_fov, focal_length,
                                       pos_x, pos_y, pos_z, 
                                      camera_xyz, q1, q2, q3, q4, dataset_name, img_path, cx, cy, w, h, time_utc])
 
@@ -190,3 +186,9 @@ if __name__ == "__main__":
     os.remove("/home/aajung/lunar-project/lunar-topography/LROC_NeRF/lroc_data.csv")
     # saving result to new csv file
     df.to_csv('lroc_data.csv', index=False)
+    
+    
+    scale = 0.25 
+    csv_dir = "/home/aajung/lunar-project/lunar-topography/LROC_NeRF/lroc_data.csv"
+    output_dir = "/home/aajung/lunar-project/lroc_pngs"
+    pixel_downscale.downscale_and_update_dataset(csv_dir, output_dir, scale)

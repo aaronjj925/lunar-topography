@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 from PIL import Image
 
-
+Image.MAX_IMAGE_PIXELS = 200000000
 # ==========================================
 # CONFIGURATION
 # ==========================================
@@ -16,7 +16,7 @@ OUTPUT_IMG_DIR = "/home/aajung/lunar-project/lroc_pngs"
 def downscale_and_update_dataset(
     csv_dir: str,
     output_dir: str,
-    scale: float = 0.125,
+    scale: float,
 ):
     out_dir_path = Path(output_dir)
     out_dir_path.mkdir(parents=True, exist_ok=True)
@@ -33,7 +33,10 @@ def downscale_and_update_dataset(
     print(f"Output directory: {output_dir}\n")
 
     for idx, row in df.iterrows():
-        orig_path = Path(str(row["png_path"]))
+        # orig_path = Path(str(row["png_path"]))
+        id = str(row["Product ID"])
+        orig_path = Path(f"{output_dir}/{id}.png")
+        
         dest_filename = f"{orig_path.stem}.png"
         dest_path = out_dir_path / dest_filename
 
@@ -62,7 +65,6 @@ def downscale_and_update_dataset(
         )
 
     # Update CSV columns to match the scaled coordinate system
-    df["image_path"] = new_image_paths
     df["Pixel Width"] = new_widths
     df["Pixel Height"] = new_heights
     df["Focal Length X (pix)"] = new_widths
@@ -75,7 +77,7 @@ def downscale_and_update_dataset(
         df["Focal Length"] = df["Focal Length"] * scale
 
     # delete old and replace with new
-    os.remove(INPUT_CSV_PATH)
+    os.remove(csv_dir)
     df.to_csv(csv_dir, index=False)
     print(f"\n[SUCCESS] Updated dataset written to: {csv_dir}")
 
