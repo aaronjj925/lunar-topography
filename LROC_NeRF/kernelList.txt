@@ -41,3 +41,16 @@
 /home/aajung/lunar-project/kernels/ck/lrosc_2011345_2011349_v01.bc
 /home/aajung/lunar-project/kernels/ck/lrosc_2011349_2011355_v01.bc
 /home/aajung/lunar-project/kernels/ck/lrosc_2011355_2012001_v01.bc
+/home/aajung/lunar-project/kernels/ck/lrolc_2010365_2011032_v02.bc
+/home/aajung/lunar-project/kernels/ck/lrolc_2011031_2011060_v02.bc
+/home/aajung/lunar-project/kernels/ck/lrolc_2011059_2011091_v02.bc
+/home/aajung/lunar-project/kernels/ck/lrolc_2011090_2011121_v02.bc
+/home/aajung/lunar-project/kernels/ck/lrolc_2011120_2011152_v02.bc
+/home/aajung/lunar-project/kernels/ck/lrolc_2011151_2011182_v02.bc
+/home/aajung/lunar-project/kernels/ck/lrolc_2011181_2011213_v02.bc
+/home/aajung/lunar-project/kernels/ck/lrolc_2011212_2011244_v02.bc
+/home/aajung/lunar-project/kernels/ck/lrolc_2011243_2011274_v02.bc
+/home/aajung/lunar-project/kernels/ck/lrolc_2011273_2011305_v03.bc
+/home/aajung/lunar-project/kernels/ck/lrolc_2011304_2011335_v02.bc
+/home/aajung/lunar-project/kernels/ck/lrolc_2011334_2012001_v05.bc
+/home/aajung/lunar-project/kernels/ck/lrolc_2011365_2012032_v08.bc

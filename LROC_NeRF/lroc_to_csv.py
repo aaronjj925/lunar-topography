@@ -48,12 +48,13 @@ src_dir, target_dir, start_date, end_date):
             writer = csv.writer(csvfile)
             # all column names
             # "Horizontal Field Of View (deg)", "Vertical Field Of View (deg)"
-            writer.writerow(["Product ID","Latitude", "Longitude", "Target to Center", "S/C Altitude", 
-                             "Target Range (m)","Horizontal Field of View (deg)", "Focal Length", 
-                             "SensorPosition X J2K", "SensorPosition Y J2K", "SensorPosition Z J2K", "Camera XYZ", 
+            writer.writerow(["Product ID","Latitude", "Longitude", "Target Range (m)", "S/C Altitude", 
+                             "Horizontal Field Of View (deg)", "Vertical Field Of View (deg)", "Focal Length",
+                             "SensorPosition X J2K (m)", "SensorPosition Y J2K (m)", "SensorPosition Z J2K (m)", "Camera XYZ",
                              "ImageFrameQuaternion Q1", "ImageFrameQuaternion Q2", "ImageFrameQuaternion Q3", 
                              "ImageFrameQuaternion Q4",
-                             "dataset_name", "png_path", "Cx", "Cy", "Pixel Width", "Pixel Height", "Time UTC"])
+                             "dataset_name", "png_path", "Cx", "Cy", "Pixel Width", "Pixel Height", "Time UTC",
+                             "Upper Right", "Upper Left", "Lower Right", "Lower Left"])
             img_count = 0
             
 
@@ -81,18 +82,19 @@ src_dir, target_dir, start_date, end_date):
                 # Conditional Checks: 1. within LL area, 2. nac, 3. time taken is within range, 4. image wxh is same
                 if (min_lat <= center_lat <= max_lat and min_lon <= center_lon <= max_lon and nac_or_wac == "nac" 
                 and time_dt > start_date and time_dt < end_date and w == 5064 and h == 52224):
-
+                    
+                    camera_frame= "LRO_LROCNACR"
                     # focal lengths of NAC right and left are slightly different
                     if camera_type == "nacr":
                         focal_meters = 701.57e-3 # in meters
                     else: 
                         focal_meters = 699.62e-3 # in meters
+                        camera_frame = "LRO_LROCNACL"
                     pixel_pitch = 7e-6 # in meters
-                    focal_length = focal_meters/pixel_pitch
+                    focal_length = focal_meters/pixel_pitch #in pixels
 
-                    t_to_c = float(row[80])*1000
+                    t_range = float(row[80])*1000
                     sc_alt = float(row[79])*1000
-                    t_range = t_to_c-sc_alt
                     
                     # normal lat = latitude of camera itself (this one is good) aka sub-spacecraft lat
                     lat = float(row[65])
@@ -111,16 +113,21 @@ src_dir, target_dir, start_date, end_date):
                     LL_lon = float(row[76])
                     UL_lat = float(row[77])
                     UL_lon = float(row[78])
+                    UR_ll = str([UR_lat, UR_lon])
+                    UL_ll = str([UL_lat, UL_lon])
+                    LR_ll = str([LR_lat, LR_lon])
+                    LL_ll = str([LL_lat, LL_lon])
                     # got from https://lroc.im-ldi.com/about/specs
                     h_fov = 2.85
+                    v_fov = 10 #random value i arbitrarily set
                     
                     # converting sc angle values to radians, and then converting to spherical coordinates
                     lat_rad = np.deg2rad(lat)
                     lon_rad = np.deg2rad(lon)
                     # multiplying by distance from target to center to scale distance past unit circle
-                    pos_x = t_to_c * np.cos(lat_rad) * np.cos(lon_rad)
-                    pos_y = t_to_c * np.cos(lat_rad) * np.sin(lon_rad)
-                    pos_z = t_to_c * np.sin(lat_rad)
+                    pos_x = t_range * np.cos(lat_rad) * np.cos(lon_rad)
+                    pos_y = t_range * np.cos(lat_rad) * np.sin(lon_rad)
+                    pos_z = t_range * np.sin(lat_rad)
 
                     # calculating quaternion by using SPICE kernels
                     with open("kernelList.txt", "r") as f:
@@ -128,9 +135,15 @@ src_dir, target_dir, start_date, end_date):
                     spice.furnsh(kernelList)
                     et = spice.str2et(time_utc)
                     # getting the rotation matrix from moon frame to LRO frame
-                    rotation_matrix = spice.pxform("IAU_MOON", "LRO_SC_BUS", et)
+                    # rotation_matrix = spice.pxform("IAU_MOON", camera_frame, et)
+                    
+                    rot_j2000_to_bus = spice.pxform("J2000", "LRO_SC_BUS", et)
+                    rot_bus_to_nac = spice.pxform("LRO_SC_BUS", camera_frame, et)
+                    
                     # getting quaternion values from rotation matrix and storing them for the csv file
+                    rotation_matrix = spice.mxm(rot_bus_to_nac, rot_j2000_to_bus)
                     quaternion = spice.m2q(rotation_matrix)
+                    # spice kernel quats are stored as wxyz and model needs xyzw
                     q1 = quaternion[1]
                     q2 = quaternion[2]
                     q3 = quaternion[3]
@@ -144,9 +157,10 @@ src_dir, target_dir, start_date, end_date):
                     cy = h/2
                         
                     product_ids.append(id)
-                    writer.writerow([id, lat, lon, t_to_c, sc_alt, t_range, h_fov, focal_length,
-                                      pos_x, pos_y, pos_z, 
-                                     camera_xyz, q1, q2, q3, q4, dataset_name, img_path, cx, cy, w, h, time_utc])
+                    writer.writerow([id, lat, lon, t_range, sc_alt, h_fov, v_fov,
+                                     focal_length, pos_x, pos_y, pos_z,
+                                     camera_xyz, q1, q2, q3, q4, dataset_name, img_path, cx, cy, w, h, time_utc, 
+                                     UR_ll, UL_ll, LR_ll, LL_ll])
 
                     img_count += 1
                     print(f"Image No. {img_count} Downloaded")
@@ -169,26 +183,26 @@ if __name__ == "__main__":
                         "/home/aajung/lunar-project/lunar-project/lunar-topography",
                         "/home/aajung/lunar-project/lunar-project/lunar-topography/LROC_NeRF", 
                         start_date, end_date)
-    lroc_img_download.download_and_convert_lroc(product_ids)
+    # lroc_img_download.download_and_convert_lroc(product_ids)
 
-    # storing product ids to set the correct path to put the path into the folder
-    df = pd.read_csv("/home/aajung/lunar-project/lunar-topography/LROC_NeRF/lroc_data.csv")
-    print(len(df))
-    for i in range(len(df)):
-        id = df.iloc[i,0]
-        # png_filepath = f"~/lunar-project/lroc_png_files/{id}.png"
-        # this new png_filepath is the path within the docker container
-        png_filepath = f"/workspace/data/lunar_data/{id}.png"
-        df.iloc[i,17] = png_filepath
-        print(f"Completed: {i+1}")
+    # # storing product ids to set the correct path to put the path into the folder
+    # df = pd.read_csv("/home/aajung/lunar-project/lunar-topography/LROC_NeRF/lroc_data.csv")
+    # print(len(df))
+    # for i in range(len(df)):
+    #     id = df.iloc[i,0]
+    #     # png_filepath = f"~/lunar-project/lroc_png_files/{id}.png"
+    #     # this new png_filepath is the path within the docker container
+    #     png_filepath = f"/workspace/data/lunar_data/{id}.png"
+    #     df.iloc[i,17] = png_filepath
+    #     print(f"Completed: {i+1}")
         
-    # FILE CLEANING: deletes old csv and replaces with redone one with new png paths
-    os.remove("/home/aajung/lunar-project/lunar-topography/LROC_NeRF/lroc_data.csv")
-    # saving result to new csv file
-    df.to_csv('lroc_data.csv', index=False)
+    # # FILE CLEANING: deletes old csv and replaces with redone one with new png paths
+    # os.remove("/home/aajung/lunar-project/lunar-topography/LROC_NeRF/lroc_data.csv")
+    # # saving result to new csv file
+    # df.to_csv('lroc_data.csv', index=False)
     
-    
-    scale = 0.25 
-    csv_dir = "/home/aajung/lunar-project/lunar-topography/LROC_NeRF/lroc_data.csv"
-    output_dir = "/home/aajung/lunar-project/lroc_pngs"
-    pixel_downscale.downscale_and_update_dataset(csv_dir, output_dir, scale)
+    # # downscales pixel count
+    # scale = 0.25 
+    # csv_dir = "/home/aajung/lunar-project/lunar-topography/LROC_NeRF/lroc_data.csv"
+    # output_dir = "/home/aajung/lunar-project/lroc_pngs"
+    # pixel_downscale.downscale_and_update_dataset(csv_dir, output_dir, scale)
