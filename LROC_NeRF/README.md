@@ -29,6 +29,7 @@ Primary goal is to develop a neural network model capable of producing a lunar g
 
 ### pixel_downscale.py
 - downscales the pixel amount because original full LROC image pixel count is too large
+- using a scale value (i.e. scale=0.25), a 4x4 pixel square is made, where the grayscale value is averaged and that value becomes the new singular value of that area
 
 
 ## Sources
