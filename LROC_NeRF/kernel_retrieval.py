@@ -8,7 +8,7 @@ import urllib.request
 import urllib.error
 import re
 
-
+# frame stuff: https://naif.jpl.nasa.gov/pub/naif/LRO/kernels/fk/lro_frames_2014049_v01.tf
 
 def get_kernels(start_date, end_date, path):
     kernelList = []

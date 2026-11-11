@@ -137,11 +137,23 @@ src_dir, target_dir, start_date, end_date):
                     # getting the rotation matrix from moon frame to LRO frame
                     # rotation_matrix = spice.pxform("IAU_MOON", camera_frame, et)
                     
-                    rot_j2000_to_bus = spice.pxform("J2000", "LRO_SC_BUS", et)
-                    rot_bus_to_nac = spice.pxform("LRO_SC_BUS", camera_frame, et)
-                    
+                    moon2camera = spice.pxform(camera_frame, "IAU_MOON", et)
+                    # fixes issue of images pointing perpendicular to plane
+                    R_nerf_flip = np.array([
+                        [1,  0,  0],
+                        [0, -1,  0],
+                        [0,  0, -1]
+                    ], dtype=np.float64)
+                    # fixes issue of images being horizontal isntead of vertical strips
+                    # rotates about local z-axis, but not sure if it should be +90 or -90 
+                    R_roll = np.array([
+                        [0, -1,  0],
+                        [1,  0,  0],
+                        [0,  0,  1]
+                    ], dtype=np.float64)
+                    rotation_matrix = moon2camera@R_nerf_flip@R_roll
+
                     # getting quaternion values from rotation matrix and storing them for the csv file
-                    rotation_matrix = spice.mxm(rot_bus_to_nac, rot_j2000_to_bus)
                     quaternion = spice.m2q(rotation_matrix)
                     # spice kernel quats are stored as wxyz and model needs xyzw
                     q1 = quaternion[1]
@@ -185,21 +197,21 @@ if __name__ == "__main__":
                         start_date, end_date)
     # lroc_img_download.download_and_convert_lroc(product_ids)
 
-    # # storing product ids to set the correct path to put the path into the folder
-    # df = pd.read_csv("/home/aajung/lunar-project/lunar-topography/LROC_NeRF/lroc_data.csv")
-    # print(len(df))
-    # for i in range(len(df)):
-    #     id = df.iloc[i,0]
-    #     # png_filepath = f"~/lunar-project/lroc_png_files/{id}.png"
-    #     # this new png_filepath is the path within the docker container
-    #     png_filepath = f"/workspace/data/lunar_data/{id}.png"
-    #     df.iloc[i,17] = png_filepath
-    #     print(f"Completed: {i+1}")
+    # storing product ids to set the correct path to put the path into the folder
+    df = pd.read_csv("/home/aajung/lunar-project/lunar-topography/LROC_NeRF/lroc_data.csv")
+    print(len(df))
+    for i in range(len(df)):
+        id = df.iloc[i,0]
+        # png_filepath = f"~/lunar-project/lroc_png_files/{id}.png"
+        # this new png_filepath is the path within the docker container
+        png_filepath = f"/workspace/data/11_10_lunar/{id}.png"
+        df.iloc[i,17] = png_filepath
+        print(f"Completed: {i+1}")
         
-    # # FILE CLEANING: deletes old csv and replaces with redone one with new png paths
-    # os.remove("/home/aajung/lunar-project/lunar-topography/LROC_NeRF/lroc_data.csv")
-    # # saving result to new csv file
-    # df.to_csv('lroc_data.csv', index=False)
+    # FILE CLEANING: deletes old csv and replaces with redone one with new png paths
+    os.remove("/home/aajung/lunar-project/lunar-topography/LROC_NeRF/lroc_data.csv")
+    # saving result to new csv file
+    df.to_csv('lroc_data.csv', index=False)
     
     # # downscales pixel count
     # scale = 0.25 
