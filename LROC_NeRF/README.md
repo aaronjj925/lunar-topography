@@ -22,14 +22,14 @@ Primary goal is to develop a neural network model capable of producing a lunar g
 - Given a section of the LRO mission from [here](https://pds.lroc.im-ldi.com/data/LRO-L-LROC-3-CDR-V1.0/) (as file number increases, current mission data gets added on top of past data), the script goes through the CUMINDEX.TAB file to find the metadata of the images taken within a specific latitude, longitude range and a start and end date. This data is saved as lroc_data.csv, where the file then access functions from the lroc_img_download.py to download the images as PNGs, saves their paths, and creates a final CSV file that contains all necessary information called lroc_data(with png_path).csv 
 
 ### lroc_data.csv
-- CSV of all necessary metadata of images for NeRF model training (except for image paths)
+- CSV of all necessary metadata of images for NeRF model training
 
 ### lroc_img_download.py
 - lroc_to_csv.py's main functino outputs a list of the product IDs. These product IDs are then used by this script to find all the raw .IMG files of every product ID given in the list, and then converts them to a PNG file and saves them within a folder (uses OpenCV and other techniques that I need to go over more for filtering the image to be more accurate to the original that can be found online)
 
-### lroc_data(with png_path).csv 
-- Completed CSV file with all necessary entries filled for NeRF model training
-
+### pixel_downscale.py
+- downscales the pixel amount because original full LROC image pixel count is too large
+- using a scale value (i.e. scale=0.25), a 4x4 pixel square is made, where the grayscale value is averaged and that value becomes the new singular value of that area
 
 
 ## Sources
